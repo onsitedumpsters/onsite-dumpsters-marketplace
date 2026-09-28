@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { ErrorProbe } from "@/components/site/ErrorProbe";
 
 export const metadata: Metadata = {
   title: {
@@ -20,7 +19,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className="h-full">
       <body className="flex min-h-full flex-col bg-stone-50 font-sans text-stone-900 antialiased">
-        <ErrorProbe />
         {children}
       </body>
     </html>

@@ -5,8 +5,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { CATEGORIES, LAUNCH_CITY } from "@/lib/cities";
 import { calculateFees, formatCents } from "@/lib/fees";
 import { Alert, Badge, Button, EmptyState, Field, Input, Select, Spinner } from "@/components/ui";
-import { SiteHeader } from "@/components/site/SiteHeader";
-import { SiteFooter } from "@/components/site/SiteFooter";
 import { ListingCard, type ListingCardData } from "@/components/site/ListingCard";
 import { SearchMap, type MapMarker } from "@/components/site/SearchMap";
 
@@ -188,8 +186,6 @@ export function SearchClient() {
 
   return (
     <>
-      <SiteHeader />
-      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
         <h1 className="text-2xl font-bold tracking-tight text-stone-900 sm:text-3xl">
           Search dumpster rentals
         </h1>
@@ -347,8 +343,6 @@ export function SearchClient() {
             {formatCents(calculateFees(34900).grandTotalCents)}.
           </p>
         </section>
-      </main>
-      <SiteFooter />
     </>
   );
 }
