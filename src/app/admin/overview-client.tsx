@@ -49,6 +49,9 @@ interface StatsResponse {
 export function OverviewClient() {
   const [stats, setStats] = useState<StatsResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [catalog, setCatalog] = useState<{ demoListings: number; hasFeeSchedule: boolean } | null>(null);
+  const [seeding, setSeeding] = useState(false);
+  const [seedMsg, setSeedMsg] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/admin/stats")
@@ -58,7 +61,29 @@ export function OverviewClient() {
       })
       .then(setStats)
       .catch((e: Error) => setError(e.message));
+    fetch("/api/admin/seed-catalog")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => d && setCatalog(d))
+      .catch(() => {});
   }, []);
+
+  async function seedDemoCatalog() {
+    if (!window.confirm("Publish 12 clearly-labeled SAMPLE listings so search, categories, and the homepage have content? You can delete them any time.")) return;
+    setSeeding(true);
+    setSeedMsg(null);
+    try {
+      const r = await fetch("/api/admin/seed-catalog", { method: "POST" });
+      const d = (await r.json().catch(() => ({}))) as { skipped?: boolean; reason?: string; listingsCreated?: number; error?: string };
+      if (!r.ok) throw new Error(d.error ?? "Seed failed");
+      setSeedMsg(d.skipped ? (d.reason ?? "Already seeded.") : `Published ${d.listingsCreated} sample listings.`);
+      const s = await fetch("/api/admin/seed-catalog").then((x) => x.json()).catch(() => null);
+      if (s) setCatalog(s);
+    } catch (e) {
+      setSeedMsg(e instanceof Error ? e.message : "Seed failed");
+    } finally {
+      setSeeding(false);
+    }
+  }
 
   if (error)
     return (
@@ -82,6 +107,30 @@ export function OverviewClient() {
         <KpiCard label="Dispute rate" value={`${k.disputeRatePct}%`} sub={`${k.disputeCount} disputes`} tone={k.disputeRatePct > 5 ? "red" : "neutral"} />
         <KpiCard label="Avg take rate" value={`${k.avgTakeRatePct}%`} sub="of rental subtotal" />
       </div>
+
+      <Card className="mt-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-bold text-stone-900">Demo catalog</h2>
+            <p className="mt-1 text-sm text-stone-500">
+              {catalog
+                ? `${catalog.demoListings} sample listings published · fee schedule ${catalog.hasFeeSchedule ? "ready" : "missing"}`
+                : "Checking catalog status…"}
+            </p>
+            <p className="mt-1 text-xs text-stone-400">
+              Sample listings make search, categories, and the homepage look alive before real haulers onboard. They are clearly labeled and you can delete them any time.
+            </p>
+          </div>
+          <Button onClick={seedDemoCatalog} disabled={seeding} size="sm">
+            {seeding ? "Publishing…" : "Seed demo catalog"}
+          </Button>
+        </div>
+        {seedMsg && (
+          <div className="mt-3">
+            <Alert tone={seedMsg.includes("Published") ? "green" : "amber"}>{seedMsg}</Alert>
+          </div>
+        )}
+      </Card>
 
       <Card className="mt-6">
         <h2 className="mb-1 text-lg font-bold text-stone-900">Platform revenue by fee type</h2>
