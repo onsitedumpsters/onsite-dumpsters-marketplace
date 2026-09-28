@@ -185,7 +185,7 @@ export default function ProviderJobPage({ params }: { params: Promise<{ id: stri
         action={<StatusBadge status={job.status} />}
       />
       {message && <Alert tone={message.tone}>{message.text}</Alert>}
-      {job.dispute && <Alert tone="red">Dispute open: {job.dispute.reason} — escrow is held.</Alert>}
+      {job.dispute && <Alert tone="red">Dispute open: {job.dispute.reason} — payment is held.</Alert>}
 
       {/* Transition actions */}
       {actions.length > 0 && (
@@ -229,7 +229,7 @@ export default function ProviderJobPage({ params }: { params: Promise<{ id: stri
             <div className="flex justify-between gap-4"><dt className="text-stone-500">Rental subtotal</dt><dd className="text-right font-medium tabular-nums">{formatCents(job.rentalSubtotalCents)}</dd></div>
             <div className="flex justify-between gap-4"><dt className="text-stone-500">Platform take (8%)</dt><dd className="text-right font-medium tabular-nums">−{formatCents(job.takeRateCents)}</dd></div>
             <div className="flex justify-between gap-4"><dt className="text-stone-500">Your payout</dt><dd className="text-right font-bold tabular-nums text-emerald-800">{formatCents(job.haulerPayoutCents)}</dd></div>
-            <div className="flex justify-between gap-4"><dt className="text-stone-500">Payment / escrow</dt><dd className="text-right"><Badge tone="neutral">{job.paymentStatus}</Badge> <Badge tone="neutral">{job.escrowStatus}</Badge></dd></div>
+            <div className="flex justify-between gap-4"><dt className="text-stone-500">Payment hold</dt><dd className="text-right"><Badge tone="neutral">{job.paymentStatus}</Badge> <Badge tone="neutral">{job.escrowStatus}</Badge></dd></div>
           </dl>
         </Card>
 

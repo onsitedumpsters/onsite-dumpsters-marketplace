@@ -76,7 +76,7 @@ export function OverviewClient() {
         <KpiCard label="GMV booked" value={formatCents(k.gmvBookedCents)} sub={`${k.bookedCount} booked orders`} />
         <KpiCard label="GMV settled" value={formatCents(k.gmvSettledCents)} sub="completed + reviewed" />
         <KpiCard label="Platform revenue" value={formatCents(k.feeRevenueCents.total)} sub="all fee types, lifetime" tone="green" />
-        <KpiCard label="Escrow outstanding" value={formatCents(k.escrowOutstandingCents)} sub="rental subtotal held" tone="amber" />
+        <KpiCard label="Payment holds outstanding" value={formatCents(k.escrowOutstandingCents)} sub="rental subtotal held" tone="amber" />
         <KpiCard label="Payouts pending" value={formatCents(k.payoutsPendingCents)} sub="awaiting transfer" />
         <KpiCard label="Fill rate" value={`${k.fillRatePct}%`} sub="accepted+ / booked" />
         <KpiCard label="Dispute rate" value={`${k.disputeRatePct}%`} sub={`${k.disputeCount} disputes`} tone={k.disputeRatePct > 5 ? "red" : "neutral"} />
@@ -135,7 +135,7 @@ export function OverviewClient() {
                   <th className="py-2 pr-4">City</th>
                   <th className="py-2 pr-4 text-right">Total</th>
                   <th className="py-2 pr-4">Status</th>
-                  <th className="py-2">Escrow</th>
+                  <th className="py-2">Hold</th>
                 </tr>
               </thead>
               <tbody>

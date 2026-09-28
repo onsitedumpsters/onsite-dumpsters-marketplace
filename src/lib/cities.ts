@@ -21,7 +21,7 @@ export const LAUNCH_CITY: CityInfo = {
   zips: ["32801", "32803", "32804", "32806", "32812", "32817", "32819", "32822", "32826", "32828"],
   phase: 1,
   blurb:
-    "Orlando is the launch market for the Onsite Dumpsters marketplace: verified local haulers, total-price booking, and escrow-protected payments.",
+    "Orlando is the launch market for the Onsite Dumpsters marketplace: verified local haulers, total-price booking, and delivery-protected payments.",
 };
 
 export const FLORIDA_CITIES: CityInfo[] = [

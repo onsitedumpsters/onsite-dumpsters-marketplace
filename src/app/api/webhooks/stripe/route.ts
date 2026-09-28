@@ -32,7 +32,7 @@ async function handleEvent(event: Stripe.Event) {
           orderId: order.id,
           fromStatus: "quote",
           toStatus: "booked",
-          note: "Payment authorized — escrow held",
+          note: "Payment authorized — held until delivery",
         },
       });
       await recordLedger({
@@ -40,7 +40,7 @@ async function handleEvent(event: Stripe.Event) {
         type: "charge_authorized",
         amountCents: order.grandTotalCents,
         stripeRef: pi.id,
-        description: `Payment authorized (escrow) — order ${order.orderNumber}`,
+        description: `Payment authorized (held) — order ${order.orderNumber}`,
         idempotencyKey: `auth:${order.id}`,
       });
       await notify(

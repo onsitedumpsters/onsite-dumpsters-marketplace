@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
-import { getSession, sessionUserId } from "@/lib/server-auth";
+import { getSession, sessionUserId, sessionRole } from "@/lib/server-auth";
 import { PageHeader, Card, Alert, Badge } from "@/components/ui";
 import { StatCard } from "@/components/dash/StatCard";
 import { DataTable } from "@/components/dash/DataTable";
@@ -12,28 +12,52 @@ const STATUS_TONE: Record<string, "neutral" | "green" | "amber" | "red"> = {
   failed: "red",
 };
 
-export default async function ProviderPayoutsPage() {
+/**
+ * Fleet-owner payouts: payment-hold releases for jobs fulfilled with this owner's
+ * containers (order → listing → container → fleetOwnerId).
+ */
+export default async function FleetPayoutsPage() {
   const session = await getSession();
   if (!session?.user) redirect("/signin");
+  if (!["fleet_owner", "admin"].includes(sessionRole(session) ?? "")) redirect("/dashboard");
   const userId = sessionUserId(session);
+
+  const containerScope = { order: { listing: { container: { fleetOwnerId: userId } } } };
 
   const [payouts, pendingAgg, paidAgg, user] = await Promise.all([
     db.payout.findMany({
-      where: { providerId: userId },
-      include: { order: { select: { orderNumber: true } } },
+      where: containerScope,
+      include: {
+        order: {
+          select: {
+            orderNumber: true,
+            listing: {
+              select: {
+                container: { select: { assetTag: true, sizeYards: true } },
+              },
+            },
+          },
+        },
+      },
       orderBy: { createdAt: "desc" },
       take: 100,
     }),
-    db.payout.aggregate({ where: { providerId: userId, status: "pending" }, _sum: { amountCents: true } }),
-    db.payout.aggregate({ where: { providerId: userId, status: "paid" }, _sum: { amountCents: true } }),
-    db.user.findUnique({ where: { id: userId }, select: { stripeConnectId: true, connectChargesEnabled: true, connectPayoutsEnabled: true } }),
+    db.payout.aggregate({ where: { ...containerScope, status: "pending" }, _sum: { amountCents: true } }),
+    db.payout.aggregate({ where: { ...containerScope, status: "paid" }, _sum: { amountCents: true } }),
+    db.user.findUnique({
+      where: { id: userId },
+      select: { stripeConnectId: true, connectChargesEnabled: true, connectPayoutsEnabled: true },
+    }),
   ]);
 
   const connectReady = Boolean(user?.stripeConnectId && user.connectChargesEnabled && user.connectPayoutsEnabled);
 
   return (
     <div>
-      <PageHeader title="Payouts" subtitle="Released payment holds settle to your Stripe Connect account." />
+      <PageHeader
+        title="Payouts"
+        subtitle="Released payment holds for jobs fulfilled with your containers."
+      />
       {!connectReady && (
         <div className="mb-6">
           <Alert tone="amber">
@@ -54,7 +78,7 @@ export default async function ProviderPayoutsPage() {
           data={payouts}
           rowKey={(p) => p.id}
           emptyTitle="No payouts yet"
-          emptyBody="Completed jobs release held payments to your payout queue."
+          emptyBody="Completed jobs fulfilled with your containers release held payments to your payout queue."
           columns={[
             {
               header: "Date",
@@ -63,6 +87,13 @@ export default async function ProviderPayoutsPage() {
             {
               header: "Order",
               render: (p) => p.order?.orderNumber ?? "—",
+            },
+            {
+              header: "Container",
+              render: (p) =>
+                p.order?.listing?.container
+                  ? `${p.order.listing.container.sizeYards} yd${p.order.listing.container.assetTag ? ` · ${p.order.listing.container.assetTag}` : ""}`
+                  : "—",
             },
             {
               header: "Amount",

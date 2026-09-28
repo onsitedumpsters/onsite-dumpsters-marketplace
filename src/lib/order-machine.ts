@@ -99,14 +99,14 @@ export function mayTransition(from: OrderStatus, to: OrderStatus, role: string):
 /** Human labels for timeline UI. */
 export const STATUS_LABELS: Record<OrderStatus, string> = {
   quote: "Quote created",
-  booked: "Booked — payment authorized (escrow)",
+  booked: "Booked — payment authorized",
   accepted: "Accepted by hauler",
   dispatched: "Driver dispatched",
   delivered: "Delivered",
   in_service: "In service at your site",
   pickup_scheduled: "Pickup scheduled",
   picked_up: "Picked up",
-  completed: "Completed — escrow released",
+  completed: "Completed — hauler paid",
   reviewed: "Reviewed",
   cancelled: "Cancelled",
   disputed: "Under dispute",

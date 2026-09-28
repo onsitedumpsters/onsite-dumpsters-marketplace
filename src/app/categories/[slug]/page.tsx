@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import type { Category } from "@prisma/client";
 import { db } from "@/lib/db";
 import { CATEGORIES } from "@/lib/cities";
+import { getContentOverride, safeJsonLd } from "@/lib/content";
 import { Card } from "@/components/ui";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
@@ -30,7 +31,7 @@ function faqsFor(name: string, tagline: string) {
     },
     {
       q: "Is my payment protected?",
-      a: "Yes. Your payment is authorized at checkout and the rental amount is held in escrow until delivery is confirmed with photo proof. Booking, drop-off, and processing fees are platform fees and are non-refundable.",
+      a: "Yes. Your payment is authorized at checkout and the rental amount is held until delivery is confirmed with photo proof. Booking, drop-off, and processing fees are platform fees and are non-refundable.",
     },
     {
       q: "Do I need a permit in Orlando?",
@@ -43,9 +44,13 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const { slug } = await params;
   const cat = CATEGORIES.find((c) => c.slug === slug);
   if (!cat) return { title: "Category not found" };
+  const override = await getContentOverride(`category:${slug}`);
   return {
-    title: `${cat.name} Rental in Orlando, FL — Compare Total Prices`,
-    description: `Book ${cat.name.toLowerCase()} in Orlando, Florida with one upfront total price, escrow-protected checkout, and verified haulers. ${cat.tagline}`,
+    title:
+      override?.title || `${cat.name} Rental in Orlando, FL — Compare Total Prices`,
+    description:
+      override?.metaDescription ||
+      `Book ${cat.name.toLowerCase()} in Orlando, Florida with one upfront total price, delivery-protected checkout, and verified haulers. ${cat.tagline}`,
   };
 }
 
@@ -65,6 +70,10 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
 
   const faqs = faqsFor(cat.name, cat.tagline);
 
+  // Admin-authored SEO overrides (managed at /admin/content); static defaults above.
+  const override = await getContentOverride(`category:${slug}`);
+  const displayFaqs = override && override.faq.length > 0 ? override.faq : faqs;
+
   const itemListJsonLd = {
     "@context": "https://schema.org",
     "@type": "ItemList",
@@ -79,7 +88,7 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
   const faqJsonLd = {
     "@context": "https://schema.org",
     "@type": "FAQPage",
-    mainEntity: faqs.map((f) => ({
+    mainEntity: displayFaqs.map((f) => ({
       "@type": "Question",
       name: f.q,
       acceptedAnswer: { "@type": "Answer", text: f.a },
@@ -90,8 +99,8 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListJsonLd) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(itemListJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(faqJsonLd) }} />
       <SiteHeader />
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
         <nav aria-label="Breadcrumb" className="mb-4 text-xs text-stone-500">
@@ -101,12 +110,11 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
         </nav>
 
         <h1 className="text-2xl font-bold tracking-tight text-stone-900 sm:text-4xl">
-          {cat.name} rental in Orlando, FL
+          {override?.h1 || `${cat.name} rental in Orlando, FL`}
         </h1>
         <p className="mt-2 max-w-3xl text-sm leading-relaxed text-stone-600 sm:text-base">
-          {cat.tagline} Compare verified Orlando haulers side by side — every listing shows one
-          total price (rental + $19 booking fee + $29 drop-off fee + 2.9% + $0.30 processing),
-          itemized before you pay. Your rental payment is held in escrow until delivery is confirmed.
+          {override?.intro ||
+            `${cat.tagline} Compare verified Orlando haulers side by side — every listing shows one total price (rental + $19 booking fee + $29 drop-off fee + 2.9% + $0.30 processing), itemized before you pay. Your rental payment is held until delivery is confirmed.`}
         </p>
         {cat.sizes.length > 0 && (
           <p className="mt-3 text-sm text-stone-500">
@@ -167,7 +175,7 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
               <li>Book 3–5 days ahead in spring and after storms — Orlando demand spikes.</li>
               <li>Driveway placement usually needs no permit; street placement does.</li>
               <li>Confirm accepted materials on the listing — concrete, dirt, and roofing have weight limits.</li>
-              <li>Your rental payment stays in escrow until delivery is confirmed with photo proof.</li>
+              <li>Your rental payment is held until delivery is confirmed with photo proof.</li>
             </ul>
           </Card>
         </section>
@@ -186,7 +194,7 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
         <section className="mt-10" aria-labelledby="faq-heading">
           <h2 id="faq-heading" className="text-xl font-bold text-stone-900">FAQs — {cat.name}</h2>
           <div className="mt-4 divide-y divide-stone-200 rounded-xl border border-stone-200 bg-white">
-            {faqs.map((f) => (
+            {displayFaqs.map((f) => (
               <details key={f.q} className="px-5 py-4">
                 <summary className="cursor-pointer list-none font-semibold text-stone-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 [&::-webkit-details-marker]:hidden">
                   {f.q}

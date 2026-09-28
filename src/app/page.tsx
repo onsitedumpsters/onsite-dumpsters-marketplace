@@ -8,12 +8,22 @@ import { Badge, Button, Card } from "@/components/ui";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { Stars } from "@/components/site/Stars";
+import { getContentOverride, safeJsonLd } from "@/lib/content";
 
-export const metadata: Metadata = {
-  title: "Onsite Dumpsters Marketplace — Compare & Book Dumpster Rentals in Orlando, FL",
-  description:
-    "Book verified dumpster rentals in Orlando, Florida. Compare total prices up front, pay through escrow-protected checkout, and track delivery live. 10–40 yard roll-offs and commercial containers.",
-};
+const HOME_TITLE = "Onsite Dumpsters Marketplace — Compare & Book Dumpster Rentals in Orlando, FL";
+const HOME_DESCRIPTION =
+  "Book verified dumpster rentals in Orlando, Florida. Compare total prices up front, pay through delivery-protected checkout, and track delivery live. 10–40 yard roll-offs and commercial containers.";
+const HOME_H1 = "Book a dumpster in Orlando with one honest, total price.";
+const HOME_INTRO =
+  "Compare verified local haulers, see every fee itemized before you pay, and book with delivery-protected checkout — your money is only released to the hauler after delivery.";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const override = await getContentOverride("home");
+  return {
+    title: override?.title || HOME_TITLE,
+    description: override?.metaDescription || HOME_DESCRIPTION,
+  };
+}
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://onsite-dumpsters.example.com";
 
@@ -45,8 +55,8 @@ const HOME_FAQS = [
     a: "Every listing shows one total price up front: the hauler's rental rate plus a $19 booking fee, a $29 drop-off fee, and a 2.9% + $0.30 payment processing fee. There are no hidden charges — what you see at checkout is what you pay.",
   },
   {
-    q: "What is escrow-protected booking?",
-    a: "When you book, your payment is authorized but not captured. The rental amount is held in escrow and only released to the hauler after your dumpster is delivered. The booking, drop-off, and processing fees are platform fees and are non-refundable.",
+    q: "What is delivery-protected booking?",
+    a: "When you book, your payment is authorized but not captured. The rental amount is held until your dumpster is delivered — it is only released to the hauler after delivery is confirmed. The booking, drop-off, and processing fees are platform fees and are non-refundable.",
   },
   {
     q: "Do I need a permit for a dumpster in Orlando?",
@@ -69,6 +79,12 @@ const HOME_FAQS = [
 export default async function HomePage() {
   const featured = await getFeaturedCampaigns().catch(() => []);
   const exampleFees = calculateFees(34900); // $349 example rental
+
+  // Admin-authored SEO overrides (managed at /admin/content); static defaults above.
+  const override = await getContentOverride("home");
+  const h1 = override?.h1 || HOME_H1;
+  const intro = override?.intro || HOME_INTRO;
+  const faqs = override && override.faq.length > 0 ? override.faq : HOME_FAQS;
 
   const organizationJsonLd = {
     "@context": "https://schema.org",
@@ -98,7 +114,7 @@ export default async function HomePage() {
   const faqJsonLd = {
     "@context": "https://schema.org",
     "@type": "FAQPage",
-    mainEntity: HOME_FAQS.map((f) => ({
+    mainEntity: faqs.map((f) => ({
       "@type": "Question",
       name: f.q,
       acceptedAnswer: { "@type": "Answer", text: f.a },
@@ -107,9 +123,9 @@ export default async function HomePage() {
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(organizationJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(websiteJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(faqJsonLd) }} />
       <SiteHeader />
 
       <main>
@@ -119,11 +135,10 @@ export default async function HomePage() {
             <div className="max-w-3xl">
               <Badge tone="amber">Now live in Orlando, FL</Badge>
               <h1 className="mt-4 text-3xl font-black tracking-tight sm:text-5xl">
-                Book a dumpster in Orlando with one honest, total price.
+                {h1}
               </h1>
               <p className="mt-4 text-base leading-relaxed text-emerald-100/90 sm:text-lg">
-                Compare verified local haulers, see every fee itemized before you pay, and book with
-                escrow-protected checkout — your money is only released to the hauler after delivery.
+                {intro}
               </p>
             </div>
 
@@ -174,7 +189,7 @@ export default async function HomePage() {
 
             <div className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-sm text-emerald-100/80">
               <span>✓ Total-price comparison</span>
-              <span>✓ Escrow-protected payments</span>
+              <span>✓ Delivery-protected payments</span>
               <span>✓ Verified Orlando haulers</span>
               <span>✓ Live delivery tracking</span>
             </div>
@@ -215,21 +230,21 @@ export default async function HomePage() {
           </div>
         </section>
 
-        {/* ── How it works (escrow explainer) ──────────────── */}
+        {/* ── How it works (payment-hold explainer) ─────── */}
         <section className="bg-white py-12" aria-labelledby="how-heading">
           <div className="mx-auto max-w-7xl px-4 sm:px-6">
             <h2 id="how-heading" className="text-2xl font-bold tracking-tight text-stone-900 sm:text-3xl">
-              How escrow-protected booking works
+              How delivery-protected booking works
             </h2>
             <p className="mt-1 max-w-2xl text-sm text-stone-500">
-              Your payment is authorized at checkout but the rental amount is held in escrow — the
+              Your payment is authorized at checkout, but the rental amount stays on hold — the
               hauler only gets paid after your dumpster is delivered.
             </p>
             <ol className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {[
                 { n: "1", t: "Compare total prices", d: "Every listing shows one all-in price: rental + $19 booking fee + $29 drop-off fee + 2.9% + $0.30 processing. No surprises." },
-                { n: "2", t: "Book & authorize", d: "Pay by card at checkout. We authorize the total; the rental amount sits in escrow while the hauler accepts and dispatches your job." },
-                { n: "3", t: "Delivery confirmed", d: "The hauler uploads photo proof on delivery. Once confirmed, we capture the payment — your rental money is released from escrow." },
+                { n: "2", t: "Book & authorize", d: "Pay by card at checkout. We authorize the total; the rental amount is held while the hauler accepts and dispatches your job." },
+                { n: "3", t: "Delivery confirmed", d: "The hauler uploads photo proof on delivery. Once confirmed, we capture the payment — your rental money is released to the hauler." },
                 { n: "4", t: "Pickup & review", d: "Schedule pickup when you're done, track it live, then leave a job-verified review that helps the next customer." },
               ].map((s) => (
                 <li key={s.n} className="rounded-xl border border-stone-200 bg-stone-50 p-5">
@@ -303,7 +318,7 @@ export default async function HomePage() {
                 Every checkout, receipt, and order page shows the same itemized breakdown. The
                 booking fee, drop-off fee, and payment processing fee are platform fees and are{" "}
                 <strong>non-refundable</strong> under all circumstances. Only the rental amount is
-                held in escrow — and only the rental amount is ever refunded on cancellation.
+                held until delivery is confirmed — and only the rental amount is ever refunded on cancellation.
               </p>
               <ul className="mt-4 space-y-2 text-sm text-stone-700">
                 <li><strong>$19 booking fee</strong> — flat per order, platform revenue.</li>
@@ -341,7 +356,7 @@ export default async function HomePage() {
                 running a job site near downtown Orlando, choose from 10, 15, 20, 30, and 40-yard
                 roll-off dumpsters plus front-load, rear-load, compactor, yard-waste, construction
                 debris, concrete-only, grease, and recycling containers. Every booking is
-                escrow-protected: your rental payment is held until delivery is confirmed with photo
+                delivery-protected: your rental payment is held until delivery is confirmed with photo
                 proof.
               </p>
             </div>
@@ -386,7 +401,7 @@ export default async function HomePage() {
             Frequently asked questions
           </h2>
           <div className="mt-6 divide-y divide-stone-200 rounded-xl border border-stone-200 bg-white">
-            {HOME_FAQS.map((f) => (
+            {faqs.map((f) => (
               <details key={f.q} className="group px-5 py-4">
                 <summary className="cursor-pointer list-none font-semibold text-stone-900 marker:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 [&::-webkit-details-marker]:hidden">
                   <span className="flex items-center justify-between gap-4">

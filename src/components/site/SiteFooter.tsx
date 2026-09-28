@@ -9,7 +9,7 @@ export function SiteFooter() {
           <p className="text-lg font-bold tracking-tight text-white">Onsite Dumpsters</p>
           <p className="mt-2 text-sm leading-relaxed text-emerald-100/80">
             The transparent dumpster rental marketplace for Orlando, Florida. Compare total prices,
-            book verified haulers, and pay through escrow-protected checkout.
+            book verified haulers, and pay through delivery-protected checkout.
           </p>
           <a
             href="https://onsitedumpsters.blogspot.com"
@@ -78,7 +78,11 @@ export function SiteFooter() {
       <div className="border-t border-emerald-900">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-2 px-4 py-5 text-xs text-emerald-100/60 sm:flex-row sm:px-6">
           <p>© 2026 Onsite Dumpsters Marketplace. All rights reserved.</p>
-          <p>Booking fee $19 · Drop-off fee $29 · Payment processing 2.9% + $0.30 — all non-refundable.</p>
+          <p className="flex flex-wrap items-center justify-center gap-x-3">
+            <Link href="/terms" className="hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300">Terms of Service</Link>
+            <Link href="/privacy" className="hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300">Privacy Policy</Link>
+            <span>Booking fee $19 · Drop-off fee $29 · Payment processing 2.9% + $0.30 — all non-refundable.</span>
+          </p>
         </div>
       </div>
     </footer>

@@ -59,7 +59,7 @@ interface OrderDetail {
   placementNotes: string | null;
   pickupScheduledAt: string | null;
   createdAt: string;
-  listing: { title: string; sizeYards: number | null };
+  listing: { id: string; title: string; sizeYards: number | null };
   provider: { name: string | null; phone: string | null; providerProfile: { businessName: string } | null };
   events: Array<{
     id: string;
@@ -340,6 +340,11 @@ export default function ClientOrderDetailPage({ params }: { params: Promise<{ id
               Report a problem
             </Button>
           )}
+          {(order.status === "completed" || order.status === "reviewed") && (
+            <Link href={`/book/${order.listing.id}`}>
+              <Button variant="outline">Book this hauler again</Button>
+            </Link>
+          )}
           {!canConfirmDelivery && !canSchedulePickup && !canCancel && !canDispute && !canReview && (
             <p className="text-sm text-stone-500">No actions available for this order right now.</p>
           )}
@@ -370,7 +375,7 @@ export default function ClientOrderDetailPage({ params }: { params: Promise<{ id
         {showDispute && canDispute && (
           <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4">
             <p className="text-sm font-semibold text-amber-900">Open a dispute</p>
-            <p className="mt-1 text-xs text-amber-800">Escrow is held while the dispute is reviewed by the marketplace team.</p>
+            <p className="mt-1 text-xs text-amber-800">Payment is held while the dispute is reviewed by the marketplace team.</p>
             <div className="mt-3 space-y-3">
               <Field label="Reason" htmlFor="dispute-reason">
                 <Input id="dispute-reason" value={disputeReason} onChange={(e) => setDisputeReason(e.target.value)} placeholder="e.g. Dumpster never delivered" />
@@ -381,7 +386,7 @@ export default function ClientOrderDetailPage({ params }: { params: Promise<{ id
               <Button
                 disabled={busy || disputeReason.trim().length < 5 || disputeDesc.trim().length < 10}
                 onClick={() =>
-                  postAction("/api/disputes", { orderId: id, reason: disputeReason, description: disputeDesc }, "Dispute opened. Escrow is now held.")
+                  postAction("/api/disputes", { orderId: id, reason: disputeReason, description: disputeDesc }, "Dispute opened. Payment is now held.")
                 }
               >
                 Submit dispute

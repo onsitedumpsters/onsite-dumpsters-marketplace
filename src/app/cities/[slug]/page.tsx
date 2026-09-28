@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { CATEGORIES, FLORIDA_CITIES, ORLANDO_PERMIT_RULES, haversineMiles } from "@/lib/cities";
+import { getContentOverride, safeJsonLd } from "@/lib/content";
 import { Badge, Card } from "@/components/ui";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
@@ -20,9 +21,13 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const { slug } = await params;
   const city = FLORIDA_CITIES.find((c) => c.slug === slug);
   if (!city) return { title: "City not found" };
+  const override = await getContentOverride(`city:${slug}`);
   return {
-    title: `Dumpster Rental in ${city.name}, ${city.state} — Compare Total Prices`,
-    description: `Book a dumpster in ${city.name}, ${city.state} with one upfront total price, escrow-protected checkout, and verified haulers. 10–40 yard roll-offs and commercial containers.`,
+    title:
+      override?.title || `Dumpster Rental in ${city.name}, ${city.state} — Compare Total Prices`,
+    description:
+      override?.metaDescription ||
+      `Book a dumpster in ${city.name}, ${city.state} with one upfront total price, delivery-protected checkout, and verified haulers. 10–40 yard roll-offs and commercial containers.`,
   };
 }
 
@@ -61,13 +66,17 @@ export default async function CityPage({ params }: { params: Promise<{ slug: str
     },
     {
       q: "Is my payment protected?",
-      a: "Yes. Your payment is authorized at checkout and the rental amount is held in escrow until delivery is confirmed with photo proof. Booking, drop-off, and processing fees are platform fees and are non-refundable.",
+      a: "Yes. Your payment is authorized at checkout and the rental amount is held until delivery is confirmed with photo proof. Booking, drop-off, and processing fees are platform fees and are non-refundable.",
     },
     {
       q: `What sizes are available in ${city.name}?`,
       a: "10, 15, 20, 30, and 40-yard roll-off dumpsters, plus front-load, rear-load, compactor, yard-waste, construction debris, concrete-only, grease, and recycling containers from verified haulers.",
     },
   ];
+
+  // Admin-authored SEO overrides (managed at /admin/content); static defaults above.
+  const override = await getContentOverride(`city:${slug}`);
+  const displayFaqs = override && override.faq.length > 0 ? override.faq : faqs;
 
   const itemListJsonLd = {
     "@context": "https://schema.org",
@@ -83,7 +92,7 @@ export default async function CityPage({ params }: { params: Promise<{ slug: str
   const faqJsonLd = {
     "@context": "https://schema.org",
     "@type": "FAQPage",
-    mainEntity: faqs.map((f) => ({
+    mainEntity: displayFaqs.map((f) => ({
       "@type": "Question",
       name: f.q,
       acceptedAnswer: { "@type": "Answer", text: f.a },
@@ -94,8 +103,8 @@ export default async function CityPage({ params }: { params: Promise<{ slug: str
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListJsonLd) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(itemListJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(faqJsonLd) }} />
       <SiteHeader />
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
         <nav aria-label="Breadcrumb" className="mb-4 text-xs text-stone-500">
@@ -106,14 +115,13 @@ export default async function CityPage({ params }: { params: Promise<{ slug: str
 
         <div className="flex flex-wrap items-center gap-3">
           <h1 className="text-2xl font-bold tracking-tight text-stone-900 sm:text-4xl">
-            Dumpster rental in {city.name}, {city.state}
+            {override?.h1 || `Dumpster rental in ${city.name}, ${city.state}`}
           </h1>
           {live ? <Badge tone="green">Now serving</Badge> : <Badge tone="amber">Phase {city.phase} — coming soon</Badge>}
         </div>
         <p className="mt-2 max-w-3xl text-sm leading-relaxed text-stone-600 sm:text-base">
-          {city.blurb} Compare verified haulers serving {city.name} — one total price per listing
-          (rental + $19 booking fee + $29 drop-off fee + 2.9% + $0.30 processing), escrow-protected
-          checkout, and live delivery tracking.
+          {override?.intro ||
+            `${city.blurb} Compare verified haulers serving ${city.name} — one total price per listing (rental + $19 booking fee + $29 drop-off fee + 2.9% + $0.30 processing), delivery-protected checkout, and live delivery tracking.`}
         </p>
         <p className="mt-2 text-sm text-stone-500">
           Serving ZIPs: {city.zips.join(", ")}
@@ -206,7 +214,7 @@ export default async function CityPage({ params }: { params: Promise<{ slug: str
             FAQs — dumpster rental in {city.name}
           </h2>
           <div className="mt-4 divide-y divide-stone-200 rounded-xl border border-stone-200 bg-white">
-            {faqs.map((f) => (
+            {displayFaqs.map((f) => (
               <details key={f.q} className="px-5 py-4">
                 <summary className="cursor-pointer list-none font-semibold text-stone-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 [&::-webkit-details-marker]:hidden">
                   {f.q}

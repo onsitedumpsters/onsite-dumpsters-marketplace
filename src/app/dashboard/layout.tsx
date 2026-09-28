@@ -25,6 +25,7 @@ const NAV: Record<string, NavLink[]> = {
   fleet_owner: [
     { href: "/dashboard/fleet", label: "Overview" },
     { href: "/dashboard/fleet/containers", label: "Containers" },
+    { href: "/dashboard/fleet/payouts", label: "Payouts" },
     { href: "/dashboard/fleet/reports", label: "Reports" },
     { href: "/dashboard/fleet/promote", label: "Promote" },
   ],

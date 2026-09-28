@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { calculateFees, CANCELLATION_POLICY_TEXT, type FeeScheduleInput } from "@/lib/fees";
 import { FeeBreakdownTable } from "@/components/FeeBreakdown";
 import { Alert, Button, Card, Field, Input, Select, Textarea } from "@/components/ui";
@@ -229,8 +230,11 @@ export function BookForm({ listing, schedule }: BookFormProps) {
               onChange={(e) => setAckPolicy(e.target.checked)}
             />
             <span>
-              I have read and accept the cancellation policy:{" "}
-              <em className="not-italic">{CANCELLATION_POLICY_TEXT}</em>
+              I have read and accept the{" "}
+              <Link href="/terms" target="_blank" className="font-semibold text-emerald-700 hover:underline">
+                cancellation policy (Terms §5)
+              </Link>
+              : <em className="not-italic">{CANCELLATION_POLICY_TEXT}</em>
             </span>
           </label>
         </div>

@@ -5,7 +5,7 @@ import { formatCents, CANCELLATION_POLICY_TEXT, type FeeBreakdown } from "@/lib/
 /** Itemized, transparent fee breakdown — reused at checkout, receipts, order detail, admin ledger. */
 export function FeeBreakdownTable({ breakdown, showPolicy = false }: { breakdown: FeeBreakdown; showPolicy?: boolean }) {
   const rows: Array<[string, number, string?]> = [
-    ["Rental (held in escrow until delivery)", breakdown.rentalSubtotalCents],
+    ["Rental (held until delivery)", breakdown.rentalSubtotalCents],
     ["Booking fee — platform, non-refundable", breakdown.bookingFeeCents, "Non-refundable"],
     ["Drop-off fee — platform, non-refundable", breakdown.droppingFeeCents, "Non-refundable"],
     ["Payment processing fee (Stripe) — platform, non-refundable", breakdown.processingFeeCents, "Non-refundable"],

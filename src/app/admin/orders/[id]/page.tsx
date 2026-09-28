@@ -90,7 +90,7 @@ export default function AdminOrderDetailPage({ params }: { params: Promise<{ id:
         <Card>
           <h2 className="mb-2 text-lg font-bold text-stone-900">Money snapshot (fee schedule v{order.feeSchedule.version})</h2>
           <div className="divide-y divide-stone-100">
-            <MoneyRow label="Rental subtotal (escrowed)" value={formatCents(order.rentalSubtotalCents)} />
+            <MoneyRow label="Rental subtotal (held)" value={formatCents(order.rentalSubtotalCents)} />
             <MoneyRow label="Booking fee (non-refundable)" value={formatCents(order.bookingFeeCents)} />
             <MoneyRow label="Dropping fee (non-refundable)" value={formatCents(order.droppingFeeCents)} />
             <MoneyRow label="Processing fee (non-refundable)" value={formatCents(order.processingFeeCents)} />

@@ -99,7 +99,7 @@ export default function AdminDisputesPage() {
               <Card key={item.id}>
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
-                    <Link href={`/admin/orders/${item.id}`} className="text-lg font-bold text-emerald-700 hover:underline">
+                    <Link href={`/admin/disputes/${item.dispute?.id ?? item.id}`} className="text-lg font-bold text-emerald-700 hover:underline">
                       {item.orderNumber}
                     </Link>
                     <p className="text-sm text-stone-500">

@@ -77,7 +77,7 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
       availability: "https://schema.org/InStock",
       seller: { "@type": "Organization", name: businessName },
       priceSpecification: [
-        { "@type": "PriceSpecification", name: "Rental subtotal (held in escrow)", price: (fees.rentalSubtotalCents / 100).toFixed(2), priceCurrency: "USD" },
+        { "@type": "PriceSpecification", name: "Rental subtotal (held until delivery)", price: (fees.rentalSubtotalCents / 100).toFixed(2), priceCurrency: "USD" },
         { "@type": "PriceSpecification", name: "Booking fee (platform, non-refundable)", price: (fees.bookingFeeCents / 100).toFixed(2), priceCurrency: "USD" },
         { "@type": "PriceSpecification", name: "Drop-off fee (platform, non-refundable)", price: (fees.droppingFeeCents / 100).toFixed(2), priceCurrency: "USD" },
         { "@type": "PriceSpecification", name: "Payment processing fee (Stripe) (platform, non-refundable)", price: (fees.processingFeeCents / 100).toFixed(2), priceCurrency: "USD" },
@@ -259,7 +259,7 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
                   Book now
                 </Link>
                 <p className="mt-2 text-center text-xs text-stone-500">
-                  Escrow-protected: rental held until delivery is confirmed.
+                  Delivery-protected: rental held until delivery is confirmed.
                 </p>
               </Card>
 

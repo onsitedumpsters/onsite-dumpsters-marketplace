@@ -95,7 +95,7 @@ export async function createEscrowIntent(order: EscrowOrderInput): Promise<Strip
       transfer_data: { destination: order.provider.stripeConnectId },
       transfer_group: order.id,
       metadata: { orderId: order.id, orderNumber: order.orderNumber },
-      description: `Onsite Dumpsters escrow — order ${order.orderNumber}`,
+      description: `Onsite Dumpsters payment hold — order ${order.orderNumber}`,
     },
     { idempotencyKey: `order-intent:${order.id}` },
   );
@@ -160,7 +160,7 @@ export async function captureEscrow(order: EscrowOrderInput) {
       type: "charge_captured",
       amountCents: order.grandTotalCents,
       stripeRef: pi.id,
-      description: `Escrow captured — order ${order.orderNumber}`,
+      description: `Payment captured — order ${order.orderNumber}`,
       idempotencyKey: `capture:${order.id}`,
     }),
   ]);
@@ -178,7 +178,7 @@ export async function captureEscrow(order: EscrowOrderInput) {
       orderId: order.id,
       fromStatus: order.status,
       toStatus: order.status,
-      note: "Escrow captured — funds held until pickup is completed",
+      note: "Payment captured — rental held until pickup is completed",
     },
   });
   return { alreadyCaptured: false as const, paymentIntent: pi };
@@ -222,7 +222,7 @@ export async function releaseEscrow(order: EscrowOrderInput) {
     orderId: order.id,
     type: "hauler_payout",
     amountCents: -payoutAmount,
-    description: `Hauler payout scheduled (escrow released) — order ${order.orderNumber}`,
+    description: `Hauler payout scheduled (payment hold released) — order ${order.orderNumber}`,
     idempotencyKey: `payout:${order.id}`,
   });
   await recordLedger({
@@ -237,7 +237,7 @@ export async function releaseEscrow(order: EscrowOrderInput) {
   await notify(
     order.provider.id,
     "Payout scheduled",
-    `Escrow released for order ${order.orderNumber}. Payout of $${(payoutAmount / 100).toFixed(2)} is on its way per your Connect payout schedule.`,
+    `Payment hold released for order ${order.orderNumber}. Payout of $${(payoutAmount / 100).toFixed(2)} is on its way per your Connect payout schedule.`,
   );
   return { alreadyReleased: false as const, payout };
 }

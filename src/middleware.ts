@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { jwtVerify } from "jose";
+import { decryptSessionToken, type EdgeSessionUser } from "./lib/edge-auth";
 
 /**
  * Edge middleware — deliberately SELF-CONTAINED and tiny.
@@ -9,9 +9,12 @@ import { jwtVerify } from "jose";
  * (Prisma adapter, providers, bcrypt, zod…) into the Edge Function bundle,
  * which exceeds Vercel Hobby's 1 MB edge-function size limit.
  *
- * Instead we verify the Auth.js session JWT directly with `jose`. The JWT is
- * issued by src/auth.ts with `role` and `userId` claims, so the role gates
- * below see the same claims the full `auth()` session exposes.
+ * Instead we decrypt the Auth.js session JWT directly. Auth.js v5 issues the
+ * session token as a JWE (A256CBC-HS512 by default) whose encryption key is
+ * derived from AUTH_SECRET via HKDF with the cookie name as salt — this
+ * replicates @auth/core's decode() exactly (same algorithm, key derivation,
+ * and clock tolerance), so the role gates below see the same `role`/`userId`
+ * claims the full auth() session exposes.
  *
  * This middleware is defense-in-depth for pages and a fast 401/403 for API
  * routes. Every API route ALSO enforces auth/roles itself via
@@ -40,34 +43,22 @@ const PUBLIC_API = ["/api/auth", "/api/health", "/api/webhooks", "/api/search", 
 // they authenticate themselves, so the session middleware must let them through.
 const PUBLIC_API_EXACT = ["/api/ads/events", "/api/backup/export", "/api/backup/ping"];
 
-type SessionUser = { id: string; role: string };
+type SessionUser = EdgeSessionUser;
 
-function getSecret(): Uint8Array {
-  const s = process.env.AUTH_SECRET;
-  if (!s) throw new Error("AUTH_SECRET is not set");
-  return new TextEncoder().encode(s);
-}
-
+// Auth.js v5 issues the session token as a JWE (encrypted JWT, default
+// content-encryption A256CBC-HS512). Decrypt it via ./lib/edge-auth, which
+// replicates @auth/core's key derivation exactly. Any failure (missing,
+// malformed, tampered, expired, wrong secret, key rotation) yields
+// null = anonymous.
 async function sessionUser(req: NextRequest): Promise<SessionUser | null> {
   // Auth.js v5 session cookie; __Secure- prefix on HTTPS (production).
-  const token =
-    req.cookies.get("__Secure-authjs.session-token")?.value ??
-    req.cookies.get("authjs.session-token")?.value;
-  if (!token) return null;
-  try {
-    const { payload } = await jwtVerify(token, getSecret());
-    const id =
-      typeof payload.userId === "string"
-        ? payload.userId
-        : typeof payload.sub === "string"
-          ? payload.sub
-          : "";
-    if (!id) return null;
-    const role = typeof payload.role === "string" ? payload.role : "client";
-    return { id, role };
-  } catch {
-    return null; // expired, tampered, or wrong-secret tokens are simply anonymous
-  }
+  const cookieName = req.cookies.has("__Secure-authjs.session-token")
+    ? "__Secure-authjs.session-token"
+    : "authjs.session-token";
+  const token = req.cookies.get(cookieName)?.value;
+  const secret = process.env.AUTH_SECRET;
+  if (!token || !secret) return null;
+  return decryptSessionToken(token, cookieName, secret);
 }
 
 export default async function middleware(req: NextRequest) {

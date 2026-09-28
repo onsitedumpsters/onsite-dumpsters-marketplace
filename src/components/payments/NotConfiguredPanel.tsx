@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { Alert, Card } from "@/components/ui";
 
 /**
@@ -48,9 +47,14 @@ export function NotConfiguredPanel({ orderNumber }: { orderNumber?: string }) {
       <div className="mt-4">
         <Alert tone="amber">
           Setup guide:{" "}
-          <Link href="/docs/STRIPE_SETUP.md" className="font-semibold underline">
+          <a
+            href="https://github.com/onsitedumpsters/onsite-dumpsters-marketplace/blob/main/docs/STRIPE_SETUP.md"
+            target="_blank"
+            rel="noreferrer"
+            className="font-semibold underline"
+          >
             docs/STRIPE_SETUP.md
-          </Link>
+          </a>
         </Alert>
       </div>
     </Card>

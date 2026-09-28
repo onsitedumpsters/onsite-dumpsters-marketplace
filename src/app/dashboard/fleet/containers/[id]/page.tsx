@@ -40,6 +40,16 @@ interface ProviderOption {
   providerProfile: { businessName: string; city: string } | null;
 }
 
+interface MaintenanceEntry {
+  id: string;
+  servicedAt: string;
+  kind: string;
+  description: string;
+  costCents: number;
+}
+
+const MAINT_KINDS = ["inspection", "repair", "cleaning", "painting", "welding", "tires", "other"];
+
 async function uploadFiles(files: FileList): Promise<string[]> {
   const urls: string[] = [];
   for (const file of Array.from(files)) {
@@ -65,13 +75,19 @@ export default function ContainerDetailPage({ params }: { params: Promise<{ id: 
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<{ tone: "green" | "red"; text: string } | null>(null);
+  const [maintLog, setMaintLog] = useState<MaintenanceEntry[]>([]);
+  const [maintKind, setMaintKind] = useState("inspection");
+  const [maintDesc, setMaintDesc] = useState("");
+  const [maintCost, setMaintCost] = useState("");
+  const [maintBusy, setMaintBusy] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [cRes, pRes] = await Promise.all([
+      const [cRes, pRes, mRes] = await Promise.all([
         fetch(`/api/fleet/containers/${id}`),
         fetch("/api/fleet/assign"),
+        fetch(`/api/fleet/containers/${id}/maintenance`),
       ]);
       const cJson = await cRes.json();
       if (!cRes.ok) throw new Error(cJson.error ?? "Could not load container");
@@ -94,6 +110,10 @@ export default function ContainerDetailPage({ params }: { params: Promise<{ id: 
       if (pRes.ok) {
         const pJson = await pRes.json();
         setProviders(pJson.providers ?? []);
+      }
+      if (mRes.ok) {
+        const mJson = await mRes.json();
+        setMaintLog(mJson.log ?? []);
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not load container");
@@ -177,6 +197,39 @@ export default function ContainerDetailPage({ params }: { params: Promise<{ id: 
       setMessage({ tone: "red", text: e instanceof Error ? e.message : "Assignment failed" });
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function addMaintenance(e: React.FormEvent) {
+    e.preventDefault();
+    if (maintDesc.trim().length < 3) {
+      setMessage({ tone: "red", text: "Describe the service performed." });
+      return;
+    }
+    setMaintBusy(true);
+    setMessage(null);
+    try {
+      const res = await fetch(`/api/fleet/containers/${id}/maintenance`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          kind: maintKind,
+          description: maintDesc.trim(),
+          costCents: Math.round(Number(maintCost || 0) * 100),
+        }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json.error ?? "Could not save service entry");
+      setMaintKind("inspection");
+      setMaintDesc("");
+      setMaintCost("");
+      setMessage({ tone: "green", text: "Service entry logged." });
+      const mRes = await fetch(`/api/fleet/containers/${id}/maintenance`);
+      if (mRes.ok) setMaintLog((await mRes.json()).log ?? []);
+    } catch (e2) {
+      setMessage({ tone: "red", text: e2 instanceof Error ? e2.message : "Could not save service entry" });
+    } finally {
+      setMaintBusy(false);
     }
   }
 
@@ -303,6 +356,73 @@ export default function ContainerDetailPage({ params }: { params: Promise<{ id: 
             </Button>
           </div>
         </form>
+      </Card>
+
+      <Card>
+        <h2 className="mb-1 font-bold text-stone-900">Maintenance log</h2>
+        <p className="mb-4 text-sm text-stone-500">
+          Service history for this container — inspections, repairs, cleaning, and costs.
+        </p>
+        <form onSubmit={addMaintenance} className="grid gap-3 sm:grid-cols-4">
+          <Field label="Service type" htmlFor="m-kind">
+            <Select id="m-kind" value={maintKind} onChange={(e) => setMaintKind(e.target.value)}>
+              {MAINT_KINDS.map((k) => (
+                <option key={k} value={k}>{k}</option>
+              ))}
+            </Select>
+          </Field>
+          <Field label="Cost ($)" htmlFor="m-cost">
+            <Input
+              id="m-cost"
+              type="number"
+              min="0"
+              step="0.01"
+              placeholder="0.00"
+              value={maintCost}
+              onChange={(e) => setMaintCost(e.target.value)}
+            />
+          </Field>
+          <div className="sm:col-span-2">
+            <Field label="Description" htmlFor="m-desc">
+              <Input
+                id="m-desc"
+                placeholder="e.g. Welded door hinge, repainted exterior"
+                value={maintDesc}
+                onChange={(e) => setMaintDesc(e.target.value)}
+                maxLength={2000}
+              />
+            </Field>
+          </div>
+          <div className="sm:col-span-4">
+            <Button type="submit" disabled={maintBusy}>
+              {maintBusy ? "Logging…" : "Log service"}
+            </Button>
+          </div>
+        </form>
+        <div className="mt-4 divide-y divide-stone-100">
+          {maintLog.length === 0 ? (
+            <p className="py-3 text-sm text-stone-500">No service entries yet.</p>
+          ) : (
+            maintLog.map((m) => (
+              <div key={m.id} className="flex items-start justify-between gap-4 py-3">
+                <div>
+                  <p className="text-sm font-semibold text-stone-900">
+                    {m.kind}
+                    <span className="ml-2 font-normal text-stone-500">
+                      {new Date(m.servicedAt).toLocaleDateString()}
+                    </span>
+                  </p>
+                  <p className="mt-0.5 text-sm text-stone-600">{m.description}</p>
+                </div>
+                {m.costCents > 0 && (
+                  <p className="shrink-0 text-sm font-semibold text-stone-900">
+                    ${(m.costCents / 100).toFixed(2)}
+                  </p>
+                )}
+              </div>
+            ))
+          )}
+        </div>
       </Card>
     </div>
   );

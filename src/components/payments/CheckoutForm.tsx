@@ -54,7 +54,7 @@ function PaymentForm({ orderId, onConfirmed }: { orderId: string; onConfirmed: (
       </Button>
       <p className="text-center text-xs text-stone-500">
         Your card is only <strong>authorized</strong> now — funds are captured when your dumpster is
-        delivered. The rental amount is held in escrow; fees are non-refundable.
+        delivered. The rental amount is held until delivery is confirmed; fees are non-refundable.
       </p>
     </form>
   );

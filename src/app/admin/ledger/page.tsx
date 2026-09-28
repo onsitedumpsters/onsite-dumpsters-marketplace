@@ -52,7 +52,7 @@ export default function AdminLedgerPage() {
   return (
     <div>
       <PageHeader
-        title="Escrow ledger"
+        title="Payment ledger"
         subtitle="Every money movement in the marketplace"
         action={
           data && (

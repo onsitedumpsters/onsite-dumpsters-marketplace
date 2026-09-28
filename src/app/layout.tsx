@@ -7,7 +7,7 @@ export const metadata: Metadata = {
     template: "%s | Onsite Dumpsters Marketplace",
   },
   description:
-    "Book verified dumpster rentals in Orlando, Florida with total-price transparency, escrow-protected payments, and live delivery tracking.",
+    "Book verified dumpster rentals in Orlando, Florida with total-price transparency, delivery-protected payments, and live delivery tracking.",
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"),
   openGraph: {
     type: "website",

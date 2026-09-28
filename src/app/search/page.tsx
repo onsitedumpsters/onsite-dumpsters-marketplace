@@ -342,7 +342,7 @@ function SearchClient() {
           <p className="mt-2 leading-relaxed">
             Total = rental subtotal + <strong>$19</strong> booking fee + <strong>$29</strong> drop-off
             fee + <strong>2.9% + $0.30</strong> payment processing fee (Stripe). The rental amount is
-            held in escrow until delivery; the booking, drop-off, and processing fees are platform
+            held until delivery is confirmed; the booking, drop-off, and processing fees are platform
             fees and are <strong>non-refundable</strong>. Example: a {formatCents(34900)} rental totals{" "}
             {formatCents(calculateFees(34900).grandTotalCents)}.
           </p>

@@ -172,6 +172,22 @@ model Container {
   updatedAt        DateTime        @updatedAt
 
   listings Listing[]
+  maintenanceLog MaintenanceLog[]
+}
+
+// Fleet container service/maintenance history (BUILD_SPEC §8).
+model MaintenanceLog {
+  id          String    @id @default(cuid())
+  containerId String
+  container   Container @relation(fields: [containerId], references: [id], onDelete: Cascade)
+  servicedAt  DateTime  @default(now())
+  kind        String    // e.g. inspection, repair, cleaning, painting, tire, weld
+  description String    @db.Text
+  costCents   Int       @default(0)
+  createdById String
+  createdAt   DateTime  @default(now())
+
+  @@index([containerId, servicedAt])
 }
 
 enum ContainerType {
@@ -637,6 +653,21 @@ model AuditLog {
 
   @@index([entityType, entityId])
   @@index([createdAt])
+}
+
+// Editable SEO/marketing copy for public pages (home, category and city
+// landing pages). Pages read an override by `key` and fall back to the
+// static defaults in src/lib/cities.ts when no override exists.
+model ContentPage {
+  id              String   @id @default(cuid())
+  key             String   @unique // e.g. "home", "category:roll-off", "city:orlando-fl"
+  title           String
+  metaDescription String   @default("")
+  h1              String   @default("")
+  intro           String   @default("") @db.Text
+  faqJson         Json?    // [{ q: string, a: string }]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 }
 
 model Notification {
