@@ -46,12 +46,10 @@
    `prisma migrate deploy` creates all tables — including `SystemStatus`, which the
    Google Drive backup / Apps Script keepalive integration writes to (see
    `integrations/gdrive-backup/README.md` for the one-time Apps Script setup).
-   After this migration lands, run once as the DB owner:
-   ```sql
-   GRANT SELECT ON TABLE "SystemStatus" TO backup_reader;
-   ```
-   (the `backup_reader` least-privilege role from `integrations/gdrive-backup/sql/backup-roles.sql`
-   predates this table, so it needs the explicit grant to keep reading backup/keepalive status).
+   After this migration lands, the Google Drive backup / Apps Script integration
+   needs no database roles — it talks to the app over authenticated HTTPS
+   (`/api/backup/export`, `/api/backup/ping`), so there is nothing to grant
+   and no `backup_reader` role to create (that JDBC-era plan is retired).
    Seed demo data once (optional, skip for production):
    ```bash
    DATABASE_URL="<redacted>" npm run db:seed   # demo data only — skip for production
