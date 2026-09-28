@@ -88,6 +88,10 @@ export default async function middleware(req: NextRequest) {
   }
 
   if (!user) {
+    // API callers get JSON, not a login-page redirect.
+    if (pathname.startsWith("/api/")) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     const url = req.nextUrl.clone();
     url.pathname = "/signin";
     url.searchParams.set("callbackUrl", pathname);
