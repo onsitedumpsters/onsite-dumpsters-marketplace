@@ -1,0 +1,37 @@
+// ── App-side wiring for the Google Drive backup / Apps Script integration ──
+// Add the block below to prisma/schema.prisma (e.g. after the Notification
+// model), then run `prisma migrate dev --name add_system_status`.
+//
+// Why it exists: the Apps Script keepalive + backup jobs write their results
+// here (last backup time/file/checksum, keepalive health). The admin dashboard
+// reads it via the BackupStatusPanel component, so the app, the script, and
+// Drive's backup-manifest.json all share one source of truth.
+// No new environment variables are required on the app side.
+
+model SystemStatus {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
+/*
+--- schema.prisma addition (copy verbatim) ---
+
+// Shared operational status written by automation (Apps Script keepalive /
+// Drive backups) and read by the admin dashboard. Key/value store on purpose:
+// automation can add new keys without migrations.
+model SystemStatus {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
+--- end ---
+
+// Keys written by integrations/gdrive-backup/Code.gs:
+//   keepalive.last_at, keepalive.db_ok, keepalive.db_latency_ms,
+//   keepalive.app_ok, keepalive.app_status, keepalive.latency_ms,
+//   backup.last_at, backup.last_kind, backup.last_file, backup.last_file_id,
+//   backup.last_rows, backup.last_sha256, backup.last_duration_ms,
+//   backup.status, backup.last_error,
+//   restore.last_at, restore.last_file, restore.status
+*/

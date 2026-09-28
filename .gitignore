@@ -1,0 +1,19 @@
+# Dependencies
+node_modules/
+
+# Build output
+.next/
+out/
+
+# Env files — NEVER commit real secrets
+.env*
+!.env.example
+
+# User uploads (S3 in production)
+/public/uploads/*
+
+# OS / editor
+.DS_Store
+*.log
+.idea/
+.vscode/

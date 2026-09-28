@@ -1,0 +1,50 @@
+@import "tailwindcss";
+@import "leaflet/dist/leaflet.css";
+
+@theme {
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --color-brand-50: #ecfdf5;
+  --color-brand-100: #d1fae5;
+  --color-brand-600: #0d6b46;
+  --color-brand-700: #0b5a3c;
+  --color-brand-800: #094a32;
+  --color-brand-900: #073a28;
+}
+
+/* Brand: deep green #0d6b46 + warm neutrals */
+::selection {
+  background: #0d6b46;
+  color: #fff;
+}
+
+/* Leaflet photo markers */
+.photo-marker {
+  border: 3px solid #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+  background: #fff;
+}
+.photo-marker img {
+  display: block;
+  width: 64px;
+  height: 48px;
+  object-fit: cover;
+}
+.photo-marker.sponsored {
+  border-color: #f59e0b;
+}
+
+.leaflet-popup-content {
+  margin: 12px 14px;
+  min-width: 220px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

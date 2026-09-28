@@ -1,0 +1,663 @@
+// Onsite Dumpsters Marketplace — Prisma schema v1.0
+// PostgreSQL. All money in integer cents (USD).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ── Auth (Auth.js v5) ──────────────────────────────────────────────
+model User {
+  id                    String    @id @default(cuid())
+  name                  String?
+  email                 String    @unique
+  emailVerified         DateTime?
+  passwordHash          String?
+  image                 String?
+  role                  Role      @default(client)
+  phone                 String?
+  // Stripe
+  stripeCustomerId      String?   @unique
+  stripeConnectId       String?   @unique
+  connectChargesEnabled Boolean   @default(false)
+  connectPayoutsEnabled Boolean   @default(false)
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  accounts          Account[]
+  sessions          Session[]
+  providerProfile   ProviderProfile?
+  fleetProfile      FleetOwnerProfile?
+  clientOrders      Order[]              @relation("ClientOrders")
+  providerOrders    Order[]              @relation("ProviderOrders")
+  listings          Listing[]
+  containers        Container[]          @relation("FleetContainers")
+  assignedContainers Container[]         @relation("AssignedContainers")
+  reviewsWritten    Review[]             @relation("ReviewsWritten")
+  reviewsReceived   Review[]             @relation("ReviewsReceived")
+  disputesRaised    Dispute[]            @relation("DisputesRaised")
+  verificationDocs  VerificationDoc[]
+  adCampaigns       AdCampaign[]
+  payouts           Payout[]
+  savedJobs         SavedJob[]
+  auditLogs         AuditLog[]
+  notifications     Notification[]
+  orderEvents       OrderEvent[]
+  evidenceUploads   EvidencePhoto[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+enum Role {
+  client
+  provider
+  fleet_owner
+  admin
+}
+
+// ── Provider / fleet profiles ──────────────────────────────────────
+model ProviderProfile {
+  id                 String             @id @default(cuid())
+  userId             String             @unique
+  user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  businessName       String
+  contactName        String?
+  phone              String?
+  address            String?
+  city               String             @default("Orlando")
+  state              String             @default("FL")
+  zip                String?
+  lat                Float?
+  lng                Float?
+  serviceRadiusMiles Float              @default(30)
+  serviceZips        String[]           @default([])
+  bio                String?
+  logoUrl            String?
+  insuranceProvider  String?
+  insurancePolicyNo  String?
+  insuranceExpiry    DateTime?
+  authorityNumber    String?
+  verificationStatus VerificationStatus @default(pending)
+  verificationNotes  String?
+  verifiedAt         DateTime?
+  ratingAvg          Float              @default(0)
+  reviewCount        Int                @default(0)
+  completedJobs      Int                @default(0)
+  onTimeRate         Float?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+}
+
+enum VerificationStatus {
+  pending
+  approved
+  rejected
+  suspended
+}
+
+model FleetOwnerProfile {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  companyName  String
+  contactName  String?
+  phone        String?
+  address      String?
+  city         String   @default("Orlando")
+  state        String   @default("FL")
+  zip          String?
+  lat          Float?
+  lng          Float?
+  bio          String?
+  logoUrl      String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Container {
+  id               String          @id @default(cuid())
+  fleetOwnerId     String
+  fleetOwner       User            @relation("FleetContainers", fields: [fleetOwnerId], references: [id], onDelete: Cascade)
+  assetTag         String?
+  sizeYards        Int
+  containerType    ContainerType
+  condition        String          @default("good")
+  depotAddress     String?
+  depotCity        String          @default("Orlando")
+  depotLat         Float?
+  depotLng         Float?
+  photos           String[]        @default([])
+  rightsStatus     String          @default("placeholder — replace with owned photography")
+  status           ContainerStatus @default(available)
+  assignedProviderId String?
+  assignedProvider User?           @relation("AssignedContainers", fields: [assignedProviderId], references: [id], onDelete: SetNull)
+  notes            String?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  listings Listing[]
+}
+
+enum ContainerType {
+  roll_off
+  front_load
+  rear_load
+  side_load
+  compactor
+  recycling
+  grease
+  specialty
+}
+
+enum ContainerStatus {
+  available
+  assigned
+  maintenance
+  retired
+}
+
+// ── Listings ───────────────────────────────────────────────────────
+model Listing {
+  id                 String        @id @default(cuid())
+  slug               String        @unique
+  providerId         String
+  provider           User          @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  containerId        String?
+  container          Container?    @relation(fields: [containerId], references: [id], onDelete: SetNull)
+  title              String
+  category           Category
+  sizeYards          Int?
+  description        String
+  // Rate card — rental_subtotal for a standard job is derived from base price
+  basePriceCents     Int
+  includedDays       Int           @default(7)
+  includedTons       Float         @default(2)
+  overagePerTonCents Int           @default(7500)
+  extraDayCents      Int           @default(1500)
+  materialsAccepted  String[]      @default([])
+  materialsProhibited String[]     @default([])
+  serviceLat         Float?
+  serviceLng         Float?
+  serviceRadiusMiles Float         @default(30)
+  serviceZips        String[]      @default([])
+  photos             String[]      @default([])
+  primaryPhoto       String?
+  rightsStatus       String        @default("placeholder — replace with owned photography")
+  status             ListingStatus @default(draft)
+  ratingAvg          Float         @default(0)
+  reviewCount        Int           @default(0)
+  bookingCount       Int           @default(0)
+  featuredUntil      DateTime?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  orders      Order[]
+  reviews     Review[]
+  adCampaigns AdCampaign[]
+}
+
+enum Category {
+  roll_off_10
+  roll_off_15
+  roll_off_20
+  roll_off_30
+  roll_off_40
+  front_load
+  rear_load
+  side_load
+  compactor
+  yard_waste
+  construction_debris
+  concrete_only
+  grease
+  recycling
+  bagster
+}
+
+enum ListingStatus {
+  draft
+  active
+  paused
+}
+
+// ── Fee schedules (versioned, admin-managed) ───────────────────────
+model FeeSchedule {
+  id                 String   @id @default(cuid())
+  version            Int      @unique
+  effectiveFrom      DateTime @default(now())
+  bookingFeeCents    Int      @default(1900)   // $19.00 — platform, non-refundable
+  droppingFeeCents   Int      @default(2900)   // $29.00 — platform, non-refundable
+  processingPct      Float    @default(0.029)  // 2.9% of pre-processing subtotal
+  processingFlatCents Int     @default(30)     // + $0.30
+  takeRatePct        Float    @default(0.08)   // 8% of rental subtotal
+  cancelFullHours    Int      @default(48)     // >48h → 100% rental refund
+  cancelHalfHours    Int      @default(24)     // 24–48h → 50% rental refund
+  isActive           Boolean  @default(true)
+  createdById        String?
+  createdAt          DateTime @default(now())
+
+  orders Order[]
+}
+
+// ── Orders (booking + fulfillment + escrow) ────────────────────────
+model Order {
+  id                 String      @id @default(cuid())
+  orderNumber        String      @unique
+  clientId           String
+  client             User        @relation("ClientOrders", fields: [clientId], references: [id])
+  listingId          String
+  listing            Listing     @relation(fields: [listingId], references: [id])
+  providerId         String
+  provider           User        @relation("ProviderOrders", fields: [providerId], references: [id])
+  feeScheduleId      String
+  feeSchedule        FeeSchedule @relation(fields: [feeScheduleId], references: [id])
+
+  status       OrderStatus   @default(quote)
+  paymentStatus PaymentStatus @default(unconfigured)
+  escrowStatus  EscrowStatus  @default(none)
+
+  // Money snapshot (cents) — computed by lib/fees.ts at booking
+  rentalSubtotalCents Int
+  bookingFeeCents     Int
+  droppingFeeCents    Int
+  processingFeeCents  Int
+  takeRateCents       Int
+  grandTotalCents     Int
+  haulerPayoutCents   Int
+  refundedRentalCents Int @default(0)
+
+  // Job details
+  deliveryAddress String
+  deliveryLat     Float?
+  deliveryLng     Float?
+  deliveryCity    String  @default("Orlando")
+  deliveryState   String  @default("FL")
+  deliveryZip     String?
+  placementNotes  String?
+  projectType     String?
+  materialType    String?
+  deliveryDate    DateTime
+  deliveryWindow  String?
+  channel         String  @default("organic")
+
+  // Stripe
+  stripePaymentIntentId String? @unique
+  stripeChargeId        String?
+
+  // Policy consent
+  cancellationPolicyAcceptedAt DateTime?
+  cancellationPolicyVersion    Int?
+
+  // Milestone timestamps
+  acceptedAt        DateTime?
+  dispatchedAt      DateTime?
+  deliveredAt       DateTime?
+  pickupScheduledAt DateTime?
+  pickedUpAt        DateTime?
+  completedAt       DateTime?
+  cancelledAt       DateTime?
+
+  review   Review?
+  dispute  Dispute?
+  events      OrderEvent[]
+  ledger      LedgerEntry[]
+  adjustments Adjustment[]
+  evidence    EvidencePhoto[]
+  payouts     Payout[]
+  adEvents    AdEvent[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([clientId, status])
+  @@index([providerId, status])
+  @@index([status])
+}
+
+enum OrderStatus {
+  quote
+  booked
+  accepted
+  dispatched
+  delivered
+  in_service
+  pickup_scheduled
+  picked_up
+  completed
+  reviewed
+  cancelled
+  disputed
+}
+
+enum PaymentStatus {
+  unconfigured
+  requires_action
+  authorized
+  captured
+  partially_refunded
+  refunded
+  failed
+}
+
+enum EscrowStatus {
+  none
+  held
+  released
+  held_dispute
+}
+
+model OrderEvent {
+  id         String      @id @default(cuid())
+  orderId    String
+  order      Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  fromStatus OrderStatus?
+  toStatus   OrderStatus
+  actorId    String?
+  actor      User?       @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  actorRole  String?
+  note       String?
+  createdAt  DateTime    @default(now())
+
+  @@index([orderId])
+}
+
+model EvidencePhoto {
+  id         String   @id @default(cuid())
+  orderId    String
+  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  kind       String   // delivery | pickup | weight_ticket | damage | other
+  url        String
+  caption    String?
+  uploadedById String?
+  uploadedBy User?    @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+  createdAt  DateTime @default(now())
+}
+
+model Adjustment {
+  id                    String           @id @default(cuid())
+  orderId               String
+  order                 Order            @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  kind                  String           // overweight | extra_days | contamination | damage | other
+  amountCents           Int
+  description           String
+  evidenceUrls          String[]         @default([])
+  status                AdjustmentStatus @default(pending)
+  stripePaymentIntentId String?
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+}
+
+enum AdjustmentStatus {
+  pending
+  charged
+  disputed
+  waived
+}
+
+// ── Money ledger (every movement writes a row) ─────────────────────
+model LedgerEntry {
+  id              String     @id @default(cuid())
+  orderId         String?
+  order           Order?     @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  adInvoiceId     String?
+  adInvoice       AdInvoice? @relation(fields: [adInvoiceId], references: [id], onDelete: SetNull)
+  type            LedgerType
+  amountCents     Int        // signed: + platform inflow, − outflow
+  currency        String     @default("usd")
+  stripeRef       String?
+  description     String
+  idempotencyKey  String?    @unique
+  createdAt       DateTime   @default(now())
+
+  @@index([orderId])
+  @@index([type])
+}
+
+enum LedgerType {
+  charge_authorized
+  charge_captured
+  fee_booking
+  fee_dropping
+  fee_processing
+  fee_take_rate
+  hauler_payout
+  rental_refund
+  adjustment_charge
+  dispute_hold
+  dispute_release
+  ad_revenue
+  payout_transfer
+}
+
+// ── Disputes / reviews ─────────────────────────────────────────────
+model Dispute {
+  id           String        @id @default(cuid())
+  orderId      String        @unique
+  order        Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  raisedById   String
+  raisedBy     User          @relation("DisputesRaised", fields: [raisedById], references: [id])
+  fromStatus   OrderStatus
+  reason       String
+  description  String
+  amountCents  Int?
+  status       DisputeStatus @default(open)
+  resolutionNotes String?
+  resolvedAt   DateTime?
+  slaDueAt     DateTime?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
+
+enum DisputeStatus {
+  open
+  under_review
+  resolved_client
+  resolved_provider
+  resolved_split
+}
+
+model Review {
+  id         String   @id @default(cuid())
+  orderId    String   @unique
+  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  clientId   String
+  client     User     @relation("ReviewsWritten", fields: [clientId], references: [id])
+  providerId String
+  provider   User     @relation("ReviewsReceived", fields: [providerId], references: [id])
+  listingId  String
+  listing    Listing  @relation(fields: [listingId], references: [id])
+  rating     Int
+  title      String?
+  body       String?
+  createdAt  DateTime @default(now())
+}
+
+model SavedJob {
+  id              String   @id @default(cuid())
+  clientId        String
+  client          User     @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  name            String
+  category        Category
+  sizeYards       Int?
+  address         String?
+  city            String?
+  zip             String?
+  materialType    String?
+  notes           String?
+  createdAt       DateTime @default(now())
+}
+
+// ── Advertise / Promote module ─────────────────────────────────────
+model AdPlacement {
+  id           String   @id @default(cuid())
+  code         String   @unique // sponsored_search | homepage_feature | category_banner
+  name         String
+  description  String?
+  priceCents   Int
+  durationDays Int      @default(7)
+  maxSlots     Int      @default(3)
+  active       Boolean  @default(true)
+  campaigns    AdCampaign[]
+}
+
+model AdCampaign {
+  id                    String           @id @default(cuid())
+  ownerId               String
+  owner                 User             @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  listingId             String?
+  listing               Listing?         @relation(fields: [listingId], references: [id], onDelete: SetNull)
+  placementId           String
+  placement             AdPlacement      @relation(fields: [placementId], references: [id])
+  title                 String
+  imageUrl              String?
+  targetUrl             String?
+  startsAt              DateTime
+  endsAt                DateTime
+  status                AdCampaignStatus @default(draft)
+  rejectionReason       String?
+  stripeCheckoutSessionId String?        @unique
+  stripePaymentIntentId String?
+  paidAt                DateTime?
+  impressions           Int              @default(0)
+  clicks                Int              @default(0)
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+
+  events   AdEvent[]
+  invoices AdInvoice[]
+}
+
+enum AdCampaignStatus {
+  draft
+  pending_approval
+  active
+  paused
+  ended
+  rejected
+}
+
+model AdEvent {
+  id         String   @id @default(cuid())
+  campaignId String
+  campaign   AdCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  type       String   // impression | click
+  orderId    String?
+  order      Order?   @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  createdAt  DateTime @default(now())
+
+  @@index([campaignId, type])
+}
+
+model AdInvoice {
+  id                    String   @id @default(cuid())
+  campaignId            String
+  campaign              AdCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  amountCents           Int
+  currency              String   @default("usd")
+  stripePaymentIntentId String?
+  status                String   @default("paid") // paid (non-refundable)
+  createdAt             DateTime @default(now())
+
+  ledger LedgerEntry[]
+}
+
+model Payout {
+  id           String      @id @default(cuid())
+  providerId   String
+  provider     User        @relation(fields: [providerId], references: [id])
+  orderId      String?
+  order        Order?      @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  amountCents  Int
+  currency     String      @default("usd")
+  stripeTransferId String?
+  status       String      @default("pending") // pending | paid | failed
+  scheduledFor DateTime?
+  paidAt       DateTime?
+  createdAt    DateTime    @default(now())
+}
+
+model VerificationDoc {
+  id         String   @id @default(cuid())
+  providerId String
+  provider   User     @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  kind       String   // insurance | authority | business_license | other
+  url        String
+  expiryDate DateTime?
+  status     String   @default("pending") // pending | approved | rejected
+  notes      String?
+  createdAt  DateTime @default(now())
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String?
+  actor      User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  action     String
+  entityType String?
+  entityId   String?
+  metadata   Json?
+  ip         String?
+  createdAt  DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([createdAt])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  body      String?
+  link      String?
+  readAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([userId, readAt])
+}
+
+// Shared operational status written by automation (Apps Script keepalive /
+// Google Drive backups — see integrations/gdrive-backup/) and read by the
+// admin dashboard's BackupStatusPanel. Key/value store on purpose: automation
+// can add new keys without migrations.
+model SystemStatus {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}

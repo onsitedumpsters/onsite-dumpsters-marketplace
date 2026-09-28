@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      # Dummy DB URL: proves the app builds when Postgres is unreachable at
+      # build time (pages must not query the DB during `next build`).
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/ci_dummy
+      # STRIPE keys intentionally ABSENT: proves the not-configured (DEMO
+      # payments mode) path builds and the health check reports it cleanly.
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - run: npx prisma generate
+
+      - run: npm run typecheck
+
+      - run: npm run test
+
+      - run: npm run build
