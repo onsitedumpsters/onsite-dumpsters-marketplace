@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { randomUUID } from "node:crypto";
+import { put } from "@vercel/blob";
 import { requireApiSession, badRequest, sessionUserId } from "@/lib/server-auth";
 import { rateLimit, UPLOAD_RATE_LIMIT } from "@/lib/rate-limit";
 
@@ -32,11 +33,22 @@ function detectImageExt(buffer: Buffer): string | null {
   return null;
 }
 
+const MIME_BY_EXT: Record<string, string> = {
+  ".jpg": "image/jpeg",
+  ".png": "image/png",
+  ".webp": "image/webp",
+};
+
 /**
  * POST /api/uploads — multipart form-data {file}.
- * v1 stores files under public/uploads/{yyyy-mm}/{uuid}.{ext}.
- * NOTE (upgrade path): swap this for S3 (presigned PUTs) before production
- * scale; keep the same {url} response contract.
+ *
+ * Storage backend is selected by environment:
+ * - Production (Vercel): `BLOB_READ_WRITE_TOKEN` set → Vercel Blob
+ *   (public). Vercel's filesystem is read-only, so local disk is impossible.
+ * - Local dev: falls back to `public/uploads/{yyyy-mm}/{uuid}.{ext}`.
+ *
+ * Response contract is unchanged: `{ url }` (absolute https URL in prod,
+ * `/uploads/...` path locally). Callers store the URL string as-is.
  */
 export async function POST(req: Request) {
   const session = await requireApiSession();
@@ -68,6 +80,18 @@ export async function POST(req: Request) {
   const now = new Date();
   const dir = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   const name = `${randomUUID()}${ext}`;
+
+  const blobToken = process.env.BLOB_READ_WRITE_TOKEN;
+  if (blobToken) {
+    const blob = await put(`uploads/${dir}/${name}`, buffer, {
+      access: "public",
+      contentType: MIME_BY_EXT[ext],
+      token: blobToken,
+    });
+    return NextResponse.json({ url: blob.url }, { status: 201 });
+  }
+
+  // Local-dev fallback (Vercel's filesystem is read-only; never hit in prod).
   const relDir = join("public", "uploads", dir);
   await mkdir(join(process.cwd(), relDir), { recursive: true });
   await writeFile(join(process.cwd(), relDir, name), buffer);

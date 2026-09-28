@@ -44,9 +44,10 @@ Set in `next.config.ts`: Content-Security-Policy (CSP), Strict-Transport-Securit
 
 - Validated server-side: **magic-byte detection** (JPEG/PNG/WebP — the client-supplied
   MIME type is not trusted), size cap (5 MB), filename sanitized
-  (server-generated UUID); stored under `public/uploads` for v1.
-- **Upgrade path:** move to S3-compatible object storage with signed URLs
-  (documented; production S3 is out of scope for v1). Never trust client-supplied
+  (server-generated UUID).
+- **Storage:** Vercel Blob (public) when `BLOB_READ_WRITE_TOKEN` is set
+  (production — Vercel's filesystem is read-only, so local disk is impossible);
+  falls back to `public/uploads` for local dev only. Never trust client-supplied
   paths — uploads are keyed by server-generated IDs.
 
 ## Stripe webhook security
