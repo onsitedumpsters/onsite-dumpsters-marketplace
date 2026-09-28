@@ -30,7 +30,7 @@ const ROLE_ROUTES: Array<{ prefix: string; roles: string[] }> = [
   { prefix: "/api/ads", roles: ["provider", "fleet_owner", "admin"] },
 ];
 
-const PUBLIC_API = ["/api/auth", "/api/health", "/api/webhooks", "/api/search", "/api/listings"];
+const PUBLIC_API = ["/api/auth", "/api/health", "/api/webhooks", "/api/search", "/api/listings", "/api/setup"];
 
 // Exact paths that stay public even under a role-gated prefix (e.g. /api/ads).
 // /api/ads/events records impressions/clicks from ALL visitors, including
