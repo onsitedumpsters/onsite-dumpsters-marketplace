@@ -94,7 +94,7 @@ export default async function HomePage() {
     url: APP_URL,
     logo: `${APP_URL}/favicon.ico`,
     sameAs: [
-      "https://onsitedumpsters.blogspot.com",
+      "https://onsite-dumpsters.blogspot.com",
       "https://sites.google.com/view/onsitedumpsters",
       "https://www.pinterest.com/dumpstersonsite/",
     ],
@@ -157,7 +157,7 @@ export default async function HomePage() {
     currenciesAccepted: "USD",
     paymentAccepted: "Credit Card, Debit Card",
     sameAs: [
-      "https://onsitedumpsters.blogspot.com",
+      "https://onsite-dumpsters.blogspot.com",
       "https://sites.google.com/view/onsitedumpsters",
       "https://www.pinterest.com/dumpstersonsite/",
     ],
@@ -448,7 +448,7 @@ export default async function HomePage() {
               </p>
             </div>
             <a
-              href="https://onsitedumpsters.blogspot.com"
+              href="https://onsite-dumpsters.blogspot.com"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2"

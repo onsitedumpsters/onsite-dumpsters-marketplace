@@ -12,7 +12,7 @@ export function SiteFooter() {
             book verified haulers, and pay through delivery-protected checkout.
           </p>
           <a
-            href="https://onsitedumpsters.blogspot.com"
+            href="https://onsite-dumpsters.blogspot.com"
             target="_blank"
             rel="noopener noreferrer"
             className="mt-4 inline-block text-sm font-semibold text-amber-300 underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
