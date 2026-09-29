@@ -19,6 +19,22 @@ export function SiteFooter() {
           >
             Read our dumpster guides →
           </a>
+          <a
+            href="https://sites.google.com/view/onsitedumpsters"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-2 inline-block text-sm font-semibold text-amber-300 underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
+          >
+            Orlando dumpster resource hub →
+          </a>
+          <a
+            href="https://www.pinterest.com/dumpstersonsite/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-2 inline-block text-sm font-semibold text-amber-300 underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
+          >
+            Dumpster inspiration on Pinterest →
+          </a>
         </div>
         <nav aria-label="Popular categories">
           <p className="text-sm font-bold uppercase tracking-wide text-emerald-200">Dumpster sizes</p>

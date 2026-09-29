@@ -22,6 +22,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: override?.title || HOME_TITLE,
     description: override?.metaDescription || HOME_DESCRIPTION,
+    alternates: { canonical: "/" },
   };
 }
 
@@ -92,13 +93,74 @@ export default async function HomePage() {
     name: "Onsite Dumpsters Marketplace",
     url: APP_URL,
     logo: `${APP_URL}/favicon.ico`,
-    sameAs: ["https://onsitedumpsters.blogspot.com", "https://www.pinterest.com/dumpstersonsite/"],
+    sameAs: [
+      "https://onsitedumpsters.blogspot.com",
+      "https://sites.google.com/view/onsitedumpsters",
+      "https://www.pinterest.com/dumpstersonsite/",
+    ],
     contactPoint: {
       "@type": "ContactPoint",
       email: "dumpstersonsite@gmail.com",
       contactType: "customer service",
       areaServed: "Orlando, FL",
     },
+  };
+  // Localized business schema: Orlando, FL service area with geo + hours.
+  const localBusinessJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "HomeAndConstructionBusiness",
+    "@id": `${APP_URL}/#business`,
+    name: "Onsite Dumpsters Marketplace",
+    url: APP_URL,
+    description: HOME_DESCRIPTION,
+    email: "dumpstersonsite@gmail.com",
+    telephone: undefined,
+    image: `${APP_URL}/opengraph-image`,
+    address: {
+      "@type": "PostalAddress",
+      addressLocality: "Orlando",
+      addressRegion: "FL",
+      addressCountry: "US",
+    },
+    geo: {
+      "@type": "GeoCoordinates",
+      latitude: 28.5383,
+      longitude: -81.3792,
+    },
+    areaServed: [
+      {
+        "@type": "GeoCircle",
+        geoMidpoint: {
+          "@type": "GeoCoordinates",
+          latitude: 28.5383,
+          longitude: -81.3792,
+        },
+        geoRadius: "50 mi",
+      },
+      ...FLORIDA_CITIES.map((c) => ({ "@type": "City", name: `${c.name}, ${c.state}` })),
+    ],
+    openingHoursSpecification: [
+      {
+        "@type": "OpeningHoursSpecification",
+        dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+        opens: "07:00",
+        closes: "19:00",
+      },
+      {
+        "@type": "OpeningHoursSpecification",
+        dayOfWeek: "Saturday",
+        opens: "08:00",
+        closes: "17:00",
+      },
+    ],
+    priceRange: "$$",
+    currenciesAccepted: "USD",
+    paymentAccepted: "Credit Card, Debit Card",
+    sameAs: [
+      "https://onsitedumpsters.blogspot.com",
+      "https://sites.google.com/view/onsitedumpsters",
+      "https://www.pinterest.com/dumpstersonsite/",
+    ],
   };
   const websiteJsonLd = {
     "@context": "https://schema.org",
@@ -124,6 +186,7 @@ export default async function HomePage() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(organizationJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(localBusinessJsonLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(websiteJsonLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(faqJsonLd) }} />
       <SiteHeader />

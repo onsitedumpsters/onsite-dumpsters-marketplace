@@ -39,6 +39,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   return {
     title: `${listing.title} — ${formatCents(total)} total`,
     description: `${listing.sizeYards ? `${listing.sizeYards}-yard ` : ""}${categoryLabel(listing.category)} rental in Orlando, FL. ${formatCents(total)} total price including all fees. ${listing.description.slice(0, 120)}`,
+    alternates: { canonical: `/listings/${slug}` },
   };
 }
 
